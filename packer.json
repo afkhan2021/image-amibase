@@ -1,0 +1,66 @@
+{
+  "builders": [
+    {
+      "ami_description": "{{ user `description` }} - Built on: {{isotime}}",
+      "ami_name": "{{ user `name` }}-{{isotime \"2006-01-02\"}}-{{isotime \"0304\"}}",
+      "ami_users": "{{ user `ami_users` }}",
+      "instance_type": "c5.2xlarge",
+      "region": "us-east-1",
+      "type": "amazon-ebs",
+      "run_tags": {
+        "Name": "PackerBuild-{{ user `name` }}"
+      },
+      "shutdown_behavior": "stop",
+      "source_ami_filter": {
+        "filters": {
+          "name": "ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*",
+          "root-device-type": "ebs",
+          "virtualization-type": "hvm"
+        },
+        "most_recent": true,
+        "owners": [
+          "099720109477"
+        ]
+      },
+      "ssh_username": "ubuntu",
+       "tags": {
+        "App_Description": "{{ user `description` }}",
+        "App_Name": "{{ user `name` }}",
+        "OS_Version": "Amazon AMI"
+      } 
+    }
+  ],
+
+  "provisioners": [{
+    "type": "file",
+    "source": "id_rsa", 
+    "destination": "/tmp/"
+  },{
+    "type": "shell",
+    "inline": ["mv /tmp/id_rsa /home/ubuntu/.ssh", 
+               "chmod 600 /home/ubuntu/.ssh/id_rsa", 
+               "ssh-keyscan -H gitlab.com >> /home/ubuntu/.ssh/known_hosts"]
+  },{
+    "type": "shell",
+    "inline": ["cd /home/ubuntu",
+              "git clone git@gitlab.com:hqvc/data-elasticsearch_sources.git"] 
+  },{
+    "type": "shell",
+    "script": "es-install.sh"
+  },
+  
+  {
+    "type": "shell",
+  "inline": ["cd /home/ubuntu",
+            "cd data-elasticsearch_sources/", 
+            "./export_es.sh 9201", "sleep 60"
+          ] 
+  }],
+  "variables": {
+    "ami_users": "190285172867",
+    "description": "HolyQuran-ElasticSearch",
+    "name": "HQES"
+  }
+}
+
+
